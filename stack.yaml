@@ -1,0 +1,96 @@
+version: '3'
+
+services:
+  authenticationDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+    volumes:
+    - dbauthentication:/var/lib/mysql
+    ports:
+      - 3306:3306
+    networks:
+      - mynetAuthentication
+  authenticationDBMigration:
+    image: authenticationdbmigration
+    environment:
+      - DATABASE_URL=authenticationDB
+    networks:
+      - mynetAuthentication
+  authentication:
+    image: authentication
+    environment:
+      - DATABASE_URL=authenticationDB
+    ports:
+    - 5001:5001
+    networks:
+      - mynetAuthentication
+  adminer:
+    image: adminer
+    ports:
+      - 8080:8080
+    networks:
+      - mynetAuthentication
+      - mynetAdmin
+  applicationsDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 10
+    ports:
+      - 3307:3306
+    networks:
+      - mynetAdmin
+  applicationsDBMigration:
+    image: applicationsdbmigration
+    environment:
+      - DATABASE_URL=applicationsDB
+    networks:
+      - mynetAdmin
+  admin:
+    image: admin
+    environment:
+      - DATABASE_URL=applicationsDB
+    ports:
+      - 5002:5002
+    networks:
+      - mynetAdmin
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    networks:
+      - mynetElection
+  electionOfficial:
+    image: electionofficial
+    environment:
+      - DATABASE_URL=applicationsDB
+    ports:
+      - 5003:5003
+    networks:
+      - mynetElection
+  daemon:
+    image: daemon
+    environment:
+      - DATABASE_URL=applicationsDB
+    networks:
+      - mynetAdmin
+      - mynetElection
+
+volumes:
+  dbauthentication:
+
+networks:
+  mynetAuthentication:
+    driver: overlay
+  mynetAdmin:
+    driver: overlay
+  mynetElection:
+    driver: overlay
